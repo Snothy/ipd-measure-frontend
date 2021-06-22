@@ -18,7 +18,7 @@ class MethodOne extends React.Component {
         //code
         return (
             <>
-                <Text>Hi lol, success!!!11!</Text>
+                <Text>Method one</Text>
                     <Uploader />
             </>
         )
