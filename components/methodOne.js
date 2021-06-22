@@ -1,5 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import Uploader from './uploader';
 
 class MethodOne extends React.Component {
     constructor(props) {
@@ -15,7 +17,10 @@ class MethodOne extends React.Component {
     render() {
         //code
         return (
-            <Text>Hi lol, success!!!11!</Text>
+            <>
+                <Text>Hi lol, success!!!11!</Text>
+                    <Uploader />
+            </>
         )
     }
 
