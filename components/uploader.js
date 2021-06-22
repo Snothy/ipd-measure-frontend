@@ -9,24 +9,25 @@ class Uploader extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            hasPermission: null,
-            type: null,
-            faceDetected: false,
-            smiling: false
+            hasPermission: null,    //whether the application has permission to access the device's camera
+            type: null,             //which camera is currently in use
+            faceDetected: false,    //whether a face is detected in frame
+            smiling: false          //whether the subject is smiling
         }
-        this.handleFacesDetected = this.handleFacesDetected.bind(this);
+        this.handleFacesDetected = this.handleFacesDetected.bind(this); //the handler needs access to state
     }
 
     async componentDidMount() {
         this.setState({ hasPermission: null });
         this.setState({ type: Camera.Constants.Type.front }); //default to front facing camera
         
-        const{ status } = await Camera.requestPermissionsAsync();
+        const{ status } = await Camera.requestPermissionsAsync(); // equivalent to 'granted' if the user has given permission to use the camera to the application
         this.setState({ hasPermission: status === 'granted' });
     }
 
 
     handleFacesDetected({faces}) {
+        //dynamically updating the state depending on whether there is a face detected in frame
         if(faces.length > 0) {
             this.setState({ faceDetected: true });
             //console.log(faces[0].smilingProbability);
