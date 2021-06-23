@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native';
 import {Button} from 'antd-mobile-rn';
 import { Camera } from 'expo-camera';
 import * as FaceDetector from 'expo-face-detector';
+import { status, json } from '../utilities/requestHandlers';
+import * as FileSystem from 'expo-file-system';
 
 
 class Uploader extends React.Component {
@@ -20,6 +22,8 @@ class Uploader extends React.Component {
             ready: false, //red-#FF0000  green-#00FF00
             countdownInitiated: false,
             countdownTime: 3,       //2 seconds before a picture is taken
+            photoTaken: false,
+            photo: null
 
 
 
@@ -30,6 +34,7 @@ class Uploader extends React.Component {
         this.handleCountdown = this.handleCountdown.bind(this);
         this.cancelCountdown = this.cancelCountdown.bind(this);
         this.takePicture = this.takePicture.bind(this);
+        this.handleUploadPicture = this.handleUploadPicture.bind(this);
     }
 
     countdownTimer = null;
@@ -119,7 +124,6 @@ class Uploader extends React.Component {
             this.setState({ countdownTime: updatedTime });
         } else {
             this.cancelCountdown();
-            //console.log(this.state.countdownTime);
             this.takePicture();
         }
     }
@@ -129,13 +133,41 @@ class Uploader extends React.Component {
         this.setState({ countdownTime: 3, countdownInitiated: false });
     }
 
-    takePicture() {
+    async takePicture() {
         if(this.camera) {
-            //let photo = await this.camera.takePictureAsync();
-            console.log("photo taken");
-            //console.log(this.state.countdownTime);
+            let photo = await this.camera.takePictureAsync();
+            this.setState({ photoTaken: true, photo: photo })
+            //console.log(this.state.photo.uri);
             //make post request to backend
+            this.handleUploadPicture();
         }
+    }
+
+
+
+
+    handleUploadPicture() {
+        //replace localhost with computer ip address so the mobile device can access the picture
+        const data = this.state.photo;
+
+        let localUri = data.uri;
+        let filename = localUri.split('/').pop();
+
+        let formData = new FormData();
+        formData.append('photo', {uri:localUri, name: filename, type: "image/jpg"});
+        console.log(formData);
+        fetch("http://localhost:3000/api/methodOne", {
+            method: "POST",
+            body: formData,
+        })
+        .then(status)
+        .then(json)
+        .then(response => {
+            console.log(response);
+        })
+        .catch(err => {
+            console.log(err);
+        })
     }
 
 
@@ -191,11 +223,6 @@ class Uploader extends React.Component {
         return <Text>No access to camera</Text>;
         }
 
-
-
-
-
-
         return (
             <>
                 <Camera style={styles.camera} type={this.state.type}
@@ -230,11 +257,6 @@ class Uploader extends React.Component {
                             { this.faceSquare .call(this) }
                         </View>
 
-
-
-
-
-
                         <View
                         style={styles.textStyle}>
                             {this.state.ready 
@@ -246,28 +268,28 @@ class Uploader extends React.Component {
                         </View>
 
 
-
-    
                     <View style={styles.warningTextStyle}>
                         {this.state.faceDetected
                         ? <Text ></Text>
-                        : <Text style={styles.warningText}>No face detected.</Text>}
+                        : <Text style={styles.warningText}>No face detected</Text>}
                         
                         {this.state.eyesOpen
                         ? <Text></Text>
-                        : <Text style={styles.warningText}>Please open your eyes.</Text>}
+                        : <Text style={styles.warningText}>Please open your eyes</Text>}
 
                         {this.state.faceTooClose
-                        ? <Text style={styles.warningText}>Move back.</Text>
+                        ? <Text style={styles.warningText}>Move back</Text>
                         : <Text></Text>}
 
                         {this.state.faceTooFar
-                        ? <Text style={styles.warningText}>Move closer.</Text>
+                        ? <Text style={styles.warningText}>Move closer</Text>
                         : <Text></Text>}
 
                         {this.state.faceRecenter
-                        ? <Text style={styles.warningText}>Recenter.</Text>
+                        ? <Text style={styles.warningText}>Recenter</Text>
                         : <Text></Text>}
+
+                        
                     </View>
 
 
@@ -278,7 +300,11 @@ class Uploader extends React.Component {
                     </View>
                 </Camera>
 
-            
+                <View>
+                {this.state.photoTaken
+                        ? <Image style={{ width: 300, height: 300 }} source={{uri:this.state.photo.uri}}></Image>
+                        : <Text>aaa</Text>}
+                </View>
             </>
         );
     }
