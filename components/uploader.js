@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, PixelRatio} from 'react-native';
 import {Button} from 'antd-mobile-rn';
 import { Camera } from 'expo-camera';
 import * as FaceDetector from 'expo-face-detector';
 import { status, json } from '../utilities/requestHandlers';
 import * as FileSystem from 'expo-file-system';
+import {Link} from 'react-router-native';
 
 
 class Uploader extends React.Component {
@@ -23,7 +24,10 @@ class Uploader extends React.Component {
             countdownInitiated: false,
             countdownTime: 3,       //2 seconds before a picture is taken
             photoTaken: false,
-            photo: null
+            photoTakingProcess: false,
+            photo: null,
+            responseReceived: false,
+            response: []
 
 
 
@@ -53,7 +57,7 @@ class Uploader extends React.Component {
      */
     handleFacesDetected({faces}) {
         //dynamically updating the state depending on whether there is a face detected in frame
-        if(faces.length === 1) {
+        if(faces.length === 1 && this.state.photoTakingProcess === false) {
         //Only working with 1 face at a time
             this.setState({ faceDetected: true });
             this.setState({ faceData: faces });
@@ -74,18 +78,13 @@ class Uploader extends React.Component {
             } else {
                 this.setState({ faceTooClose: false });
             }
-            if(currY > styles.minSquare.top || currX > styles.minSquare.left) {
-                this.setState({ faceRecenter: true });
-                this.setState({ ready: false });
-            } else {
-                this.setState({ faceRecenter: false })
-            }
 
             //Check whether their eyes are open
             if(faces[0].leftEyeOpenProbability > 75/100 && faces[0].rightEyeOpenProbability > 60/100) {
                 this.setState({ eyesOpen: true });
                 //execute code for countdown timer
-                if( !(this.state.faceTooFar || this.state.faceTooClose || this.state.faceRecenter || this.state.countdownInitiated) ) { //if theyre all false => we start the countdown
+                if( !(this.state.faceTooFar || this.state.faceTooClose || this.state.faceRecenter || this.state.countdownInitiated || this.statephotoTaken) ) { 
+                //if theyre all false => we start the countdown
                     this.setState({ ready: true }); 
                     this.startCountdown();
                     //console.log('passed through');
@@ -98,7 +97,7 @@ class Uploader extends React.Component {
         } else {
             this.setState({ faceDetected: false });
             this.setState({ eyesOpen: true }); //if no faces are detected, there's nobody to open their eyes
-            this.setState({ faceData: [] });
+            //this.setState({ faceData: [] });
             this.setState({ faceTooClose: false });
             this.setState({ faceTooFar: false });
             this.setState({ faceRecenter: false });
@@ -135,6 +134,7 @@ class Uploader extends React.Component {
 
     async takePicture() {
         if(this.camera) {
+            this.setState({ photoTakingProcess: true })
             let photo = await this.camera.takePictureAsync();
             this.setState({ photoTaken: true, photo: photo })
             //console.log(this.state.photo.uri);
@@ -149,13 +149,17 @@ class Uploader extends React.Component {
     handleUploadPicture() {
         //replace localhost with computer ip address so the mobile device can access the picture
         const data = this.state.photo;
+        const facedata = this.state.faceData[0];
 
         let localUri = data.uri;
         let filename = localUri.split('/').pop();
 
         let formData = new FormData();
-        formData.append('photo', {uri:localUri, name: filename, type: "image/jpg"});
-        console.log(formData);
+        //making a multipart post request
+        formData.append('photo', {uri:localUri, name: filename, type: "image/jpg"}); //image file 
+        formData.append("eyeCoordinates", JSON.stringify({leftEye: facedata.leftEyePosition, rightEye: facedata.rightEyePosition})); //additional body information as string
+        formData.append("squareSize", JSON.stringify({size: Math.round(facedata.bounds.size.width)}));
+        //console.log(formData);
         fetch("http://localhost:3000/api/methodOne", {
             method: "POST",
             body: formData,
@@ -163,7 +167,10 @@ class Uploader extends React.Component {
         .then(status)
         .then(json)
         .then(response => {
-            console.log(response);
+            this.setState( {responseReceived: true, response: response} );
+            //console.log(this.state.response);
+            
+            
         })
         .catch(err => {
             console.log(err);
@@ -173,7 +180,7 @@ class Uploader extends React.Component {
 
     faceSquare() {
         //console.log(this.state.faceData.length);
-        if(this.state.faceData.length > 0) {
+        if(this.state.faceData.length > 0 && this.state.photoTakingProcess === false) {
             const square = {
                 position: 'absolute',
                 //position of the top left corner of a square - from the api
@@ -223,6 +230,14 @@ class Uploader extends React.Component {
         return <Text>No access to camera</Text>;
         }
 
+        if(this.state.responseReceived) {
+            return (
+                <View>
+                <Text>Your estimated IPD is: {this.state.response.IPD}</Text>
+                </View>
+            )
+        }
+        //{this.state.response.IPD}
         return (
             <>
                 <Camera style={styles.camera} type={this.state.type}
@@ -300,11 +315,6 @@ class Uploader extends React.Component {
                     </View>
                 </Camera>
 
-                <View>
-                {this.state.photoTaken
-                        ? <Image style={{ width: 300, height: 300 }} source={{uri:this.state.photo.uri}}></Image>
-                        : <Text>aaa</Text>}
-                </View>
             </>
         );
     }

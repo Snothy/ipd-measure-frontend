@@ -11,6 +11,7 @@ import {
 //Import components
 //import home ....
 import MethodOne from './components/methodOne';
+//import Results from './components/results';
 
 export default class App extends React.Component {
     render() {
