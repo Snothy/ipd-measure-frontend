@@ -9,19 +9,25 @@
   },
   "dependencies": {
     "@ant-design/react-native": "^4.2.0",
+    "@react-navigation/drawer": "^5.12.5",
+    "@react-navigation/native": "^5.9.4",
     "antd-mobile-rn": "^2.3.3",
     "babel-plugin-import": "^1.13.3",
     "babel-preset-env": "^1.7.0",
     "expo": "~41.0.1",
+    "expo-camera": "~11.0.2",
+    "expo-face-detector": "~10.0.1",
+    "expo-file-system": "~11.0.2",
     "expo-status-bar": "~1.0.4",
     "react": "16.13.1",
     "react-dom": "16.13.1",
     "react-native": "https://github.com/expo/react-native/archive/sdk-41.0.0.tar.gz",
+    "react-native-gesture-handler": "^1.10.3",
+    "react-native-reanimated": "^2.2.0",
+    "react-native-screens": "^3.4.0",
     "react-native-web": "~0.13.12",
     "react-router-native": "^5.2.0",
-    "expo-camera": "~11.0.2",
-    "expo-face-detector": "~10.0.1",
-    "expo-file-system": "~11.0.2"
+    "expo-barcode-scanner": "~10.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0"

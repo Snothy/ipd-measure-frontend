@@ -1,9 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import Uploader from './uploader';
-
-class MethodOne extends React.Component {
+class Home extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -16,17 +14,18 @@ class MethodOne extends React.Component {
     render() {
         //code
         return (
-            <View style={{    
-            justifyContent: 'center',
+            <>
+            <View style={{    justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: 100}}>
-                <Text>Method one</Text>
-                    <Uploader />
+            height: 100}}>
+                <Text>Home</Text>
+                <Text>Drag the sidebar and select a method.</Text>
             </View>
+            </>
         )
     }
 
 
 }
 
-export default MethodOne;
+export default Home;

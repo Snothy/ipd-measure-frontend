@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import Uploader from './uploader';
+import UploaderTwo from './uploaderTwo';
 
-class MethodOne extends React.Component {
+class MethodTwo extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -20,8 +20,8 @@ class MethodOne extends React.Component {
             justifyContent: 'center',
             alignItems: 'center',
             paddingTop: 100}}>
-                <Text>Method one</Text>
-                    <Uploader />
+                <Text>Method two</Text>
+                    <UploaderTwo />
             </View>
         )
     }
@@ -29,4 +29,4 @@ class MethodOne extends React.Component {
 
 }
 
-export default MethodOne;
+export default MethodTwo;

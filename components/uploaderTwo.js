@@ -1,14 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, PixelRatio} from 'react-native';
-import {Button} from 'antd-mobile-rn';
+import { StyleSheet, Text, View, TouchableOpacity} from 'react-native';
 import { Camera } from 'expo-camera';
 import * as FaceDetector from 'expo-face-detector';
 import { status, json } from '../utilities/requestHandlers';
-import * as FileSystem from 'expo-file-system';
-import {Link} from 'react-router-native';
+import { BarCodeScanner } from 'expo-barcode-scanner';
 
 
-class Uploader extends React.Component {
+class UploaderTwo extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -17,15 +15,14 @@ class Uploader extends React.Component {
             faceData: [],           //The data about the face collected from the Google Mobile Vision framework
             faceDetected: false,    //whether a face is detected in frame
             eyesOpen: true,         //whether the subject's eyes are open (they need to be)
-            faceTooClose: false,
-            faceTooFar: false,
-            faceRecenter: false,
             ready: false, //red-#FF0000  green-#00FF00
             countdownInitiated: false,
             countdownTime: 3,       //2 seconds before a picture is taken
             photoTaken: false,
             photoTakingProcess: false,
             photo: null,
+            barcodeScanned: false,
+            barcodeData: [],
             responseReceived: false,
             response: []
 
@@ -33,12 +30,12 @@ class Uploader extends React.Component {
 
         }
         this.handleFacesDetected = this.handleFacesDetected.bind(this); //the handler needs access to state
-        this.faceSquare = this.faceSquare.bind(this);
         this.startCountdown = this.startCountdown.bind(this);
         this.handleCountdown = this.handleCountdown.bind(this);
         this.cancelCountdown = this.cancelCountdown.bind(this);
         this.takePicture = this.takePicture.bind(this);
         this.handleUploadPicture = this.handleUploadPicture.bind(this);
+        this.handleBarcodeScanned = this.handleBarcodeScanned.bind(this);
     }
 
     countdownTimer = null;
@@ -62,28 +59,15 @@ class Uploader extends React.Component {
             this.setState({ faceDetected: true });
             this.setState({ faceData: faces });
 
-            //Make sure they subject's face at the correct distance (they fit the square parameters)
-            const currLength = faces[0].bounds.size.width; //its a square so the 2 sides are the same length
-            const currY = faces[0].bounds.origin.y;        //even if the square is the same size, they might not be in the correct position of the frame
-            const currX = faces[0].bounds.origin.x;
-            if(currLength < styles.minStyle.width) {
-                this.setState({ faceTooFar: true });
-                this.setState({ ready: false });
-            } else {
-                this.setState({ faceTooFar: false });
-            }
-            if(currLength > styles.maxStyle.width ) {
-                this.setState({ faceTooClose: true });
-                this.setState({ ready: false });
-            } else {
-                this.setState({ faceTooClose: false });
-            }
-
             //Check whether their eyes are open
             if(faces[0].leftEyeOpenProbability > 75/100 && faces[0].rightEyeOpenProbability > 60/100) {
                 this.setState({ eyesOpen: true });
+
+                //TODO: check for barcode within certain area
+
+
                 //execute code for countdown timer
-                if( !(this.state.faceTooFar || this.state.faceTooClose || this.state.faceRecenter || this.state.countdownInitiated || this.statephotoTaken) ) { 
+                if( !(this.state.countdownInitiated || this.state.photoTaken || (!this.state.barcodeScanned)) ) { 
                 //if theyre all false => we start the countdown
                     this.setState({ ready: true }); 
                     this.startCountdown();
@@ -98,14 +82,17 @@ class Uploader extends React.Component {
             this.setState({ faceDetected: false });
             this.setState({ eyesOpen: true }); //if no faces are detected, there's nobody to open their eyes
             //this.setState({ faceData: [] });
-            this.setState({ faceTooClose: false });
-            this.setState({ faceTooFar: false });
-            this.setState({ faceRecenter: false });
             this.setState({ ready: false });
-            //this.setState({ smiling: false });
+            this.setState({ barcodeScanned: false })
         } 
         //TODO: handle exception where there are multiple faces detected
         //maybe force the user to only include only one person(face) in frame
+    }
+
+
+    handleBarcodeScanned({ type, data }) {
+        console.log(data);
+        this.setState({ barcodeScanned: true, barcodeData: data })
     }
 
 
@@ -157,10 +144,8 @@ class Uploader extends React.Component {
         let formData = new FormData();
         //making a multipart post request
         formData.append('photo', {uri:localUri, name: filename, type: "image/jpg"}); //image file 
-        formData.append("eyeCoordinates", JSON.stringify({leftEye: facedata.leftEyePosition, rightEye: facedata.rightEyePosition})); //additional body information as string
-        formData.append("squareSize", JSON.stringify({size: Math.round(facedata.bounds.size.width)}));
         //console.log(formData);
-        fetch("http://localhost:3000/api/methods/methodOne", {
+        fetch("http://localhost:3000/api/methods/methodTwo", {
             method: "POST",
             body: formData,
         })
@@ -178,43 +163,38 @@ class Uploader extends React.Component {
     }
 
 
-    faceSquare() {
-        //console.log(this.state.faceData.length);
-        if(this.state.faceData.length > 0 && this.state.photoTakingProcess === false) {
-            const square = {
-                position: 'absolute',
-                //position of the top left corner of a square - from the api
-                top: this.state.faceData[0].bounds.origin.y,
-                left: this.state.faceData[0].bounds.origin.x,
-            };
-            let squareColour;
-            if(this.state.ready) {
-                squareColour = '#00FF00'; //green
-            } else {
-                squareColour = '#FF0000'; //red
-            }
-            const style = {
-                width: this.state.faceData[0].bounds.size.width,
-                height: this.state.faceData[0].bounds.size.height,
-                borderWidth: 2,
-                borderColor: squareColour
-            };
 
-            const textColor = {
-                color: '#ffffff'
-            };
-
-            //console.log(square.top, square.left, style.width, style.height); //16-25-left   | 68-75-top
-
-            return (
-                <>
-                <View style = {square}>
-                    <View style = {style}></View>
-                </View>
-                </>
-            )
+    barCodeSquare() {
+        const square = {
+            position: 'absolute',
+            top: 50,
+            left: 80,
+        };
+        let squareColour;
+        if(this.state.barcodeScanned && this.state.faceDetected) {
+            squareColour = '#00FF00'; //green
+        } else {
+            squareColour = '#FF0000'; //red
         }
+        const style = {
+            width: 150,
+            height: 80,
+            borderWidth: 2,
+            borderColor: squareColour
+        };
+        const textColor = {
+            color: '#ffffff'
+        };
+
+        return (
+            <>
+            <View style = {square}>
+                <View style = {style}></View>
+            </View>
+            </>
+        )
     }
+
 
 
     componentDidUpdate() {   
@@ -244,13 +224,19 @@ class Uploader extends React.Component {
                 ref={ref => {
                     this.camera = ref;}}
                 onFacesDetected={this.handleFacesDetected}
+                onBarCodeScanned={this.handleBarcodeScanned}
                 faceDetectorSettings={{
                     mode: FaceDetector.Constants.Mode.accurate,
                     detectLandmarks: FaceDetector.Constants.Landmarks.all,
                     runClassifications: FaceDetector.Constants.Classifications.all,
                     minDetectionInterval: 100,
                     tracking: true
+
                 }}
+                barCodeScannerSettings={{
+                    barCodeTypes: [BarCodeScanner.Constants.BarCodeType.qr],  //remove to test with code128 or other barcodes
+                  }}
+
                 >
                     <View style={styles.buttonContainer}>
                     <TouchableOpacity
@@ -268,9 +254,9 @@ class Uploader extends React.Component {
                             
                     </TouchableOpacity>
 
-                         <View>
-                            { this.faceSquare .call(this) }
-                        </View>
+                    <View>
+                        { this.barCodeSquare .call(this) }
+                    </View>
 
                         <View
                         style={styles.textStyle}>
@@ -287,23 +273,14 @@ class Uploader extends React.Component {
                         {this.state.faceDetected
                         ? <Text ></Text>
                         : <Text style={styles.warningText}>No face detected</Text>}
+
+                        {this.state.barcodeScanned
+                        ? <Text ></Text>
+                        : <Text style={styles.warningText}>Place QR code on forehead</Text>}
                         
                         {this.state.eyesOpen
                         ? <Text></Text>
                         : <Text style={styles.warningText}>Please open your eyes</Text>}
-
-                        {this.state.faceTooClose
-                        ? <Text style={styles.warningText}>Move back</Text>
-                        : <Text></Text>}
-
-                        {this.state.faceTooFar
-                        ? <Text style={styles.warningText}>Move closer</Text>
-                        : <Text></Text>}
-
-                        {this.state.faceRecenter
-                        ? <Text style={styles.warningText}>Recenter</Text>
-                        : <Text></Text>}
-
                         
                     </View>
 
@@ -386,4 +363,4 @@ const styles = StyleSheet.create({
     }
   });
 
-export default Uploader;
+export default UploaderTwo;

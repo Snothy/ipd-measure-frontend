@@ -6,23 +6,31 @@ import {
     Switch,
     Route
 } from 'react-router-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 
 //Add sidebar to select different methods
 //Import components
 //import home ....
+import Home from './components/home';
 import MethodOne from './components/methodOne';
-//import Results from './components/results';
+import MethodTwo from './components/methodTwo';
+
+const Drawer = createDrawerNavigator();
 
 export default class App extends React.Component {
     render() {
         return (
-            <Router>
-                <View style={styles.container}>
-                    <Switch>
-                        <Route exact path="/" component={MethodOne} />
-                    </Switch>
-                </View>
-            </Router>
+            <>
+
+            <NavigationContainer>
+                <Drawer.Navigator initialRouteName="Home">
+                    <Drawer.Screen name="Home" component={Home}/>
+                    <Drawer.Screen name="methodOne" component={MethodOne}/>
+                    <Drawer.Screen name="methodTwo" component={MethodTwo}/>
+                </Drawer.Navigator>
+            </NavigationContainer>
+            </>
         );
     }
 }
