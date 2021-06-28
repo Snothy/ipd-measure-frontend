@@ -22,6 +22,7 @@ class UploaderTwo extends React.Component {
             photoTakingProcess: false,
             photo: null,
             barcodeScanned: false,
+            barcodeStillInView: false,
             barcodeData: [],
             responseReceived: false,
             response: []
@@ -91,8 +92,9 @@ class UploaderTwo extends React.Component {
 
 
     handleBarcodeScanned({ type, data }) {
+        //TODO: exception if QR code is invalid
         console.log(data);
-        this.setState({ barcodeScanned: true, barcodeData: data })
+        this.setState({ barcodeScanned: true, barcodeData: JSON.parse(data), barcodeStillInView: true});
     }
 
 
@@ -103,11 +105,11 @@ class UploaderTwo extends React.Component {
 
     handleCountdown() {
         if(this.state.countdownTime > 0) {
-            if(!this.state.ready) {
-                return this.cancelCountdown();
+            if(!this.state.ready || this.state.barcodeStillInView === false) {
+                return this.cancelCountdown(); 
             }
             let updatedTime = this.state.countdownTime - 1;
-            this.setState({ countdownTime: updatedTime });
+            this.setState({ countdownTime: updatedTime, barcodeStillInView: false});
         } else {
             this.cancelCountdown();
             this.takePicture();
@@ -116,7 +118,7 @@ class UploaderTwo extends React.Component {
 
     cancelCountdown() {
         clearInterval(this.countdownTimer);
-        this.setState({ countdownTime: 3, countdownInitiated: false });
+        this.setState({ countdownTime: 3, countdownInitiated: false, ready: false, barcodeScanned: false, faceDetected:false });
     }
 
     async takePicture() {
@@ -144,6 +146,7 @@ class UploaderTwo extends React.Component {
         let formData = new FormData();
         //making a multipart post request
         formData.append('photo', {uri:localUri, name: filename, type: "image/jpg"}); //image file 
+        formData.append('QR', JSON.stringify({size: this.state.barcodeData.size}) );
         //console.log(formData);
         fetch("http://localhost:3000/api/methods/methodTwo", {
             method: "POST",
@@ -213,7 +216,7 @@ class UploaderTwo extends React.Component {
         if(this.state.responseReceived) {
             return (
                 <View>
-                <Text>Your estimated IPD is: {this.state.response.IPD}</Text>
+                <Text>Your estimated IPD is: {this.state.response.IPD}mm</Text>
                 </View>
             )
         }
